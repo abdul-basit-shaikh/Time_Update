@@ -309,19 +309,20 @@
             updateStatus("You can close this page now", "info");
           }, 2000);
         } catch (error) {
-          // console.error("Sync error:", error);
-          // showSpinner(false);
+          console.error("Sync error:", error);
+          showSpinner(false);
 
-          // // If the device refuses because it's already up-to-date, present a friendly message
-          // const msg = (error && error.message) ? error.message.toLowerCase() : "";
-          // if (msg.includes("failed to execute") || msg.includes("execute") || msg.includes("already") || msg.includes("not allowed") || msg.includes("operation failed")) {
-          //   // treat as already-synced
-          //   setSyncedFlag(deviceKey);
+          // If the device refuses because it's already up-to-date, present a friendly message
+          const msg = (error && error.message) ? error.message.toLowerCase() : "";
+          if (msg.includes("failed to execute") || msg.includes("execute") || msg.includes("already") || msg.includes("not allowed") || msg.includes("operation failed")) {
+            // treat as already-synced
+            setSyncedFlag(deviceKey);
             updateStatus("Time already updated", "info");
             return;
-          // }
+          }
 
-          // updateStatus(`Sync failed: ${error.message}`, "error");
+          // General failure: show error message
+          updateStatus(`Sync failed: ${error.message}`, "error");
         }
       }
 

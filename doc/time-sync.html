@@ -274,35 +274,21 @@
         }
       }
 
-      // Sync time to device
+      // Sync time to device (RAW UTC TIMESTAMP)
       async function syncTime() {
         try {
-          updateStatus("Fetching current time...", "info");
+          updateStatus("Syncing time...", "info");
           showSpinner(true);
 
-          // Fetch current time from WorldTimeAPI
-          const response = await fetch("https://worldtimeapi.org/api/ip");
-          const data = await response.json();
-
-          // Parse datetime
-          const datetime = new Date(data.datetime);
-
-          // Create time data JSON
-          const timeData = {
-            year: datetime.getFullYear(),
-            month: datetime.getMonth() + 1, // JavaScript months are 0-indexed
-            day: datetime.getDate(),
-            hour: datetime.getHours(),
-            minute: datetime.getMinutes(),
-            second: datetime.getSeconds(),
-          };
-
-          const jsonString = JSON.stringify(timeData);
-          console.log("Sending time data:", jsonString);
+          // Use browser's absolute timestamp (UTC seconds)
+          const utcTimestamp = Math.floor(Date.now() / 1000);
+          const timestampString = utcTimestamp.toString();
+          
+          console.log("Sending RAW UTC Timestamp:", timestampString);
 
           // Send to ESP32 via BLE
           const encoder = new TextEncoder();
-          const data_bytes = encoder.encode(jsonString);
+          const data_bytes = encoder.encode(timestampString);
           await timeCharacteristic.writeValue(data_bytes);
 
           updateStatus("✅ Time synced successfully!", "success");

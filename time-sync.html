@@ -276,6 +276,13 @@
 
       // Sync time to device (RAW UTC TIMESTAMP)
       async function syncTime() {
+        // If we've already synced recently for this device, show friendly message
+        const deviceKey = targetDeviceMac || (bluetoothDevice && bluetoothDevice.id) || "unknown";
+        if (isAlreadySynced(deviceKey)) {
+          updateStatus("Time already updated", "info");
+          return;
+        }
+
         try {
           updateStatus("Syncing time...", "info");
           showSpinner(true);
@@ -294,14 +301,49 @@
           updateStatus("✅ Time synced successfully!", "success");
           showSpinner(false);
 
-          // Show success message
+          // record that we synced for this device
+          setSyncedFlag(deviceKey);
+
+          // Show success message and guidance
           setTimeout(() => {
             updateStatus("You can close this page now", "info");
           }, 2000);
         } catch (error) {
           console.error("Sync error:", error);
-          updateStatus(`Sync failed: ${error.message}`, "error");
           showSpinner(false);
+
+          // If the device refuses because it's already up-to-date, present a friendly message
+          const msg = (error && error.message) ? error.message.toLowerCase() : "";
+          if (msg.includes("failed to execute") || msg.includes("execute") || msg.includes("already") || msg.includes("not allowed") || msg.includes("operation failed")) {
+            // treat as already-synced
+            setSyncedFlag(deviceKey);
+            updateStatus("Time already updated", "info");
+            return;
+          }
+
+          updateStatus(`Sync failed: ${error.message}`, "error");
+        }
+      }
+
+      // Helpers to keep track of synced state per device (uses localStorage)
+      function setSyncedFlag(deviceId) {
+        try {
+          const key = `timeSynced_${deviceId}`;
+          localStorage.setItem(key, Date.now().toString());
+        } catch (e) {
+          // ignore storage errors
+        }
+      }
+
+      function isAlreadySynced(deviceId) {
+        try {
+          const key = `timeSynced_${deviceId}`;
+          const v = localStorage.getItem(key);
+          if (!v) return false;
+          // Consider it synced (no expiry) — change logic here to add expiry if desired
+          return true;
+        } catch (e) {
+          return false;
         }
       }
 

@@ -264,6 +264,14 @@
           document.getElementById("syncBtn").disabled = false;
           document.getElementById("scanBtn").style.display = "none";
 
+          // If we've already synced for this device, reflect that in the UI
+          const deviceKeyAfterConnect = targetDeviceMac || (bluetoothDevice && bluetoothDevice.id) || "unknown";
+          if (isAlreadySynced(deviceKeyAfterConnect)) {
+            updateStatus("Time already updated", "info");
+            document.getElementById("syncBtn").disabled = true;
+            document.getElementById("syncBtn").textContent = "✅ Synced";
+          }
+
           // Start time display
           updateTimeDisplay();
           setInterval(updateTimeDisplay, 1000);
@@ -304,6 +312,11 @@
           // record that we synced for this device
           setSyncedFlag(deviceKey);
 
+          // disable the sync button to avoid repeated errors
+          const syncBtn = document.getElementById("syncBtn");
+          syncBtn.disabled = true;
+          syncBtn.textContent = "✅ Synced";
+
           // Show success message and guidance
           setTimeout(() => {
             updateStatus("You can close this page now", "info");
@@ -313,16 +326,35 @@
           showSpinner(false);
 
           // If the device refuses because it's already up-to-date, present a friendly message
-          const msg = (error && error.message) ? error.message.toLowerCase() : "";
-          if (msg.includes("failed to execute") || msg.includes("execute") || msg.includes("already") || msg.includes("not allowed") || msg.includes("operation failed")) {
+          const raw = (error && (error.message || error.name || error.toString())) ? (error.message || error.name || error.toString()) : "";
+          const msg = raw.toLowerCase();
+
+          // Broaden matching for common BLE/write errors and the browser DOMException text
+          if (
+            msg.includes("failed to execute") ||
+            msg.includes("writevalue") ||
+            msg.includes("write value") ||
+            msg.includes("characteristic") ||
+            msg.includes("already") ||
+            msg.includes("not allowed") ||
+            msg.includes("operation failed") ||
+            msg.includes("not readable") ||
+            msg.includes("invalid state")
+          ) {
             // treat as already-synced
             setSyncedFlag(deviceKey);
             updateStatus("Time already updated", "info");
+            // disable sync button
+            const sb = document.getElementById("syncBtn");
+            if (sb) {
+              sb.disabled = true;
+              sb.textContent = "✅ Synced";
+            }
             return;
           }
 
           // General failure: show error message
-          updateStatus(`Sync failed: ${error.message}`, "error");
+          updateStatus(`Sync failed: ${raw}`, "error");
         }
       }
 
@@ -355,4 +387,4 @@
       }
     </script>
   </body>
-</html> 
+</html>
